@@ -1,0 +1,9 @@
+.idea
+ReText/__pycache__
+ReText/locale/*.qm
+ReText.egg-info
+MANIFEST
+build
+dist
+tests/__pycache__
+*.pyc

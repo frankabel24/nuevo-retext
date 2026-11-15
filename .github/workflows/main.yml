@@ -1,0 +1,78 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        environment:
+          - py39-pyqt62-ubuntu2204
+          - py39-windows
+          - py310-pyqt64-ubuntu
+          - py311-pyqt65-ubuntu
+          - py312-pyqt68-ubuntu2404
+          - py313-pyqt611-ubuntu
+          - py314-ubuntu
+        include:
+          - environment: py39-pyqt62-ubuntu2204
+            python: 3.9
+            pyqt: PyQt6~=6.2.0 PyQt6-Qt6~=6.2.0 PyQt6-sip~=13.6.0
+            platform: ubuntu-22.04
+          - environment: py39-windows
+            python: 3.9
+            pyqt: PyQt6
+            platform: windows-latest
+          - environment: py310-pyqt64-ubuntu
+            python: '3.10'
+            pyqt: PyQt6~=6.4.0 PyQt6-Qt6~=6.4.0
+            platform: ubuntu-latest
+          - environment: py311-pyqt65-ubuntu
+            python: '3.11'
+            pyqt: PyQt6~=6.5.0 PyQt6-Qt6~=6.5.0
+            platform: ubuntu-latest
+          - environment: py312-pyqt68-ubuntu2404
+            python: '3.12'
+            pyqt: PyQt6~=6.8.0 PyQt6-Qt6~=6.8.0
+            platform: ubuntu-24.04
+          - environment: py313-pyqt611-ubuntu
+            python: '3.13'
+            pyqt: PyQt6~=6.11.0 PyQt6-Qt6~=6.11.0
+            platform: ubuntu-latest
+          - environment: py314-ubuntu
+            python: '3.14'
+            pyqt: PyQt6
+            platform: ubuntu-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install apt dependencies
+        if: ${{ startsWith(matrix.platform, 'ubuntu') }}
+        run: |
+          sudo apt update
+          sudo apt install libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-cursor0 libxcb-xinerama0
+          sudo apt install libegl1 libxkbcommon-x11-0
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install Python dependencies
+        run: |
+          python -m pip install ${{ matrix.pyqt }} Markdown pymdown-extensions docutils chardet Markups Pygments
+      - name: Run tests in Xvfb
+        if: ${{ startsWith(matrix.platform, 'ubuntu') }}
+        run: xvfb-run -a -s "-screen 0 1024x768x24" python -m unittest discover -s tests -v
+      - name: Run tests
+        if: ${{ !startsWith(matrix.platform, 'ubuntu') }}
+        run: python -m unittest discover -s tests -v
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Install ruff
+        run: python -m pip install ruff
+      - name: Run ruff check
+        run: ruff check --select F,E,W,I,UP --line-length=106 --target-version=py39 .
